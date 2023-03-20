@@ -66,13 +66,13 @@ def wechat():
                 # 把构造的字典转换成xml格式
                 xml = xmltodict.unparse({'xml':resp})
                 return xml
-            except:
+            except Exception as e:
                 resp = {
                     'ToUserName':req.get('FromUserName'),
                     'FromUserName':req.get('ToUserName'),
                     'CreateTime':int(time.time()),
                     'MsgType':'text',
-                    'Content':'好像发生了点问题，请稍后再重新提问～'
+                    'Content':'好像发生了点问题，请稍后再重新提问～'+str(e)
                 }
                 xml = xmltodict.unparse({'xml':resp})
                 return xml
