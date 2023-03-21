@@ -124,6 +124,7 @@ class Chatbot:
             )
         response_role: str = None
         full_response: str = ""
+        print(response)
         for line in response.iter_lines():
             if not line:
                 continue
