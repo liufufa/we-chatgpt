@@ -118,7 +118,7 @@ class Chatbot:
             },
             stream=True,
         )
-        print('resp=' + response)
+        print('resp=' + str(response))
         if response.status_code != 200:
             print('response error')
             raise Exception(
