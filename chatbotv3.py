@@ -151,6 +151,7 @@ class Chatbot:
         """
         Non-streaming ask
         """
+        print("[ask]")
         response = self.ask_stream(
             prompt=prompt,
             role=role,
