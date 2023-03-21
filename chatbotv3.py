@@ -32,7 +32,7 @@ class Chatbot:
         temperature: float = 0.5,
         top_p: float = 1.0,
         reply_count: int = 1,
-        system_prompt: str = "你是全能助手小h，善于解决一切问题",
+        system_prompt: str = "你是firefox，善于解决一切问题",
     ) -> None:
         """
         Initialize Chatbot with API key (from https://platform.openai.com/account/api-keys)
@@ -104,7 +104,7 @@ class Chatbot:
         self.__truncate_conversation(convo_id=convo_id)
         # Get response
         response = self.session.post(
-            "https://api.openai.com/v1/chat/completions",
+            "https://service-2f6q3v4w-1257441275.sg.apigw.tencentcs.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
             json={
                 "model": self.engine,
