@@ -46,13 +46,13 @@ def wechat():
     if request.method == 'POST':
         # 获取微信服务器post过来的xml数据
         xml = request.data
-        print(xml)
         try:
             # 把xml格式的数据进行处理，转换成字典进行取值
             req = xmltodict.parse(xml)['xml'] # 云端调试空内容报错解决：no element found
         except:
             return 'no element', 200
 
+        print(req)
         # 判断post过来的数据中数据类型是不是文本
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
