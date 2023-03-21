@@ -52,7 +52,7 @@ def wechat():
         except:
             return 'no element', 200
 
-        print('req=' + req)
+        print('req=' + str(req))
         # 判断post过来的数据中数据类型是不是文本
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
