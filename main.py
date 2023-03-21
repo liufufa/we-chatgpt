@@ -9,8 +9,7 @@ from chatbotv3 import Chatbot
 os.environ['GPT_ENGINE'] = 'gpt-3.5-turbo'
 api_key = os.environ.get('API_KEY')
 chatbot = Chatbot(api_key=api_key)
-last_answer = ""
-isQuerying = False
+answerList=list()
 
 
 app = Flask(__name__)
@@ -59,30 +58,35 @@ def wechat():
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
             try:
-                global isQuerying
-                global last_answer
-                if not isQuerying and len(last_answer) != 0 and (req.get('Content') == '。'):
-                    resp = {
-                        'ToUserName':req.get('FromUserName'),
-                        'FromUserName':req.get('ToUserName'),
-                        'CreateTime':int(time.time()),
-                        'MsgType':'text',
-                        'Content': last_answer
-                    }
+                if req.get('Content') in ['。', '你好', 'hi']:
+                    if len(answerList) == 0:
+                        resp = {
+                            'ToUserName':req.get('FromUserName'),
+                            'FromUserName':req.get('ToUserName'),
+                            'CreateTime':int(time.time()),
+                            'MsgType':'text',
+                            'Content': '请提问，或者回复“。”(中文句号)等待回答...'
+                        }
+                    else:
+                        resp = {
+                            'ToUserName':req.get('FromUserName'),
+                            'FromUserName':req.get('ToUserName'),
+                            'CreateTime':int(time.time()),
+                            'MsgType':'text',
+                            'Content': answerList.pop()
+                        }
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
                 else:
+                    answer = chatbot.ask(req.get('Content'))
+                    answerList.append(answer)
                     resp = {
                         'ToUserName':req.get('FromUserName'),
                         'FromUserName':req.get('ToUserName'),
                         'CreateTime':int(time.time()),
                         'MsgType':'text',
-                        'Content': "正在请求，稍后回复中文句号查询结果"
+                        'Content': answer
                     }
-                    if not isQuerying:
-                        isQuerying = True
-                        last_answer = chatbot.ask(req.get('Content'))
-                        isQuerying = False
                     # 把构造的字典转换成xml格式
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
@@ -92,7 +96,7 @@ def wechat():
                     'FromUserName':req.get('ToUserName'),
                     'CreateTime':int(time.time()),
                     'MsgType':'text',
-                    'Content':'好像发生了点问题，请稍后再重新提问～'+str(e)
+                    'Content':'好像发生了点问题，请稍后再重新提问:'+str(e)
                 }
                 xml = xmltodict.unparse({'xml':resp})
                 return xml

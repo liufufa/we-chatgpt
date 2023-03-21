@@ -148,12 +148,12 @@ class Chatbot:
                 full_response += content
                 yield content
         self.add_to_conversation(full_response, response_role, convo_id=convo_id)
-        print("[ask_stream]", full_response)
 
     def ask(self, prompt: str, role: str = "user", convo_id: str = "default", **kwargs):
         """
         Non-streaming ask
         """
+        print("[ask]", prompt)
         response = self.ask_stream(
             prompt=prompt,
             role=role,
@@ -161,7 +161,7 @@ class Chatbot:
             **kwargs,
         )
         full_response: str = "".join(response)
-        print("[ask]", full_response)
+        print("[bot]", full_response)
         return full_response
 
     def rollback(self, n: int = 1, convo_id: str = "default"):
