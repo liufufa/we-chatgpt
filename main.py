@@ -9,6 +9,8 @@ from chatbotv3 import Chatbot
 os.environ['GPT_ENGINE'] = 'gpt-3.5-turbo'
 api_key = os.environ.get('API_KEY')
 chatbot = Chatbot(api_key=api_key)
+last_answer = ""
+isQuerying = False
 
 
 app = Flask(__name__)
@@ -57,16 +59,33 @@ def wechat():
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
             try:
-                resp = {
-                    'ToUserName':req.get('FromUserName'),
-                    'FromUserName':req.get('ToUserName'),
-                    'CreateTime':int(time.time()),
-                    'MsgType':'text',
-                    'Content':chatbot.ask(req.get('Content'))
-                }
-                # 把构造的字典转换成xml格式
-                xml = xmltodict.unparse({'xml':resp})
-                return xml
+                global isQuerying
+                global last_answer
+                if not isQuerying and len(last_answer) != 0 and (req.get('Content') == '。'):
+                    resp = {
+                        'ToUserName':req.get('FromUserName'),
+                        'FromUserName':req.get('ToUserName'),
+                        'CreateTime':int(time.time()),
+                        'MsgType':'text',
+                        'Content': last_answer
+                    }
+                    xml = xmltodict.unparse({'xml':resp})
+                    return xml
+                else:
+                    resp = {
+                        'ToUserName':req.get('FromUserName'),
+                        'FromUserName':req.get('ToUserName'),
+                        'CreateTime':int(time.time()),
+                        'MsgType':'text',
+                        'Content': "正在请求，稍后回复中文句号查询结果"
+                    }
+                    if not isQuerying:
+                        isQuerying = True
+                        last_answer = chatbot.ask(req.get('Content'))
+                        isQuerying = False
+                    # 把构造的字典转换成xml格式
+                    xml = xmltodict.unparse({'xml':resp})
+                    return xml
             except Exception as e:
                 resp = {
                     'ToUserName':req.get('FromUserName'),

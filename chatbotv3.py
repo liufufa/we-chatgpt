@@ -118,17 +118,8 @@ class Chatbot:
             },
             stream=True,
         )
-        print({
-                "model": self.engine,
-                "messages": self.conversation[convo_id],
-                "stream": True,
-                # kwargs
-                "temperature": kwargs.get("temperature", self.temperature),
-                "top_p": kwargs.get("top_p", self.top_p),
-                "n": kwargs.get("n", self.reply_count),
-                "user": role,
-            })
-        print('resp=' + str(response))
+        # print('resp=' + str(response))
+        # print('resp.content=' + str(response.content))
         if response.status_code != 200:
             print('response error')
             raise Exception(
@@ -157,6 +148,7 @@ class Chatbot:
                 full_response += content
                 yield content
         self.add_to_conversation(full_response, response_role, convo_id=convo_id)
+        print("[ask_stream]", full_response)
 
     def ask(self, prompt: str, role: str = "user", convo_id: str = "default", **kwargs):
         """
@@ -169,6 +161,7 @@ class Chatbot:
             **kwargs,
         )
         full_response: str = "".join(response)
+        print("[ask]", full_response)
         return full_response
 
     def rollback(self, n: int = 1, convo_id: str = "default"):
