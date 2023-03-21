@@ -118,13 +118,13 @@ class Chatbot:
             },
             stream=True,
         )
+        print(response)
         if response.status_code != 200:
             raise Exception(
                 f"Error: {response.status_code} {response.reason} {response.text}",
             )
         response_role: str = None
         full_response: str = ""
-        print(response)
         for line in response.iter_lines():
             if not line:
                 continue
