@@ -118,6 +118,16 @@ class Chatbot:
             },
             stream=True,
         )
+        print({
+                "model": self.engine,
+                "messages": self.conversation[convo_id],
+                "stream": True,
+                # kwargs
+                "temperature": kwargs.get("temperature", self.temperature),
+                "top_p": kwargs.get("top_p", self.top_p),
+                "n": kwargs.get("n", self.reply_count),
+                "user": role,
+            })
         print('resp=' + str(response))
         if response.status_code != 200:
             print('response error')
@@ -152,7 +162,6 @@ class Chatbot:
         """
         Non-streaming ask
         """
-        print("[ask]")
         response = self.ask_stream(
             prompt=prompt,
             role=role,
