@@ -16,21 +16,11 @@ api_key = os.environ.get('API_KEY')
 access_token = ''
 expire_time = 0
 #每人一个gpt实例
-bot_list: dict = {
-    '': Chatbot(api_key=api_key)
-}
+bot_list: dict = {}
 #回答列表
-a_list: dict = {
-    '': list()
-}
+a_list: dict = {}
 #问题列表
-q_list: dict = {
-    '': list()
-}
-# MsgID列表用于去重
-msg_id_list: dict = {
-    '': list()
-}
+q_list: dict = {}
 
 app = Flask(__name__)
 
@@ -76,7 +66,6 @@ def wechat():
         print('req=' + str(req))
         userName = req.get('FromUserName')
         botName = req.get('ToUserName')
-        msgId = req.get('MsgId')
         # 判断post过来的数据中数据类型是不是文本
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
@@ -93,12 +82,21 @@ def wechat():
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
                 else:
-                    if msgId not in msg_id_list.setdefault(userName, list()):
+                    pid = os.fork()
+                    if pid == 0:
+                        resp = {
+                            'ToUserName':userName,
+                            'FromUserName':botName,
+                            'CreateTime':int(time.time()),
+                            'MsgType':'text',
+                            'Content': '稍等我问下'
+                        }
+                        xml = xmltodict.unparse({'xml':resp})
+                        return xml
+                    else:
                         answer = '[' + msg + ']\n' + bot_list.setdefault(userName, Chatbot(api_key=api_key)).ask(msg)
-                        msg_id_list[userName].append(msgId)
                         q_list.setdefault(userName, list()).append(msg)
                         a_list.setdefault(userName, list()).append(answer)
-                        print(msg_id_list)
                         print(q_list)
                         sendMessageToBot(answer, userName, botName)
                     return ''
@@ -164,6 +162,5 @@ def findOpenid(botName: str, fromName: str):
     return ''
 
     
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
