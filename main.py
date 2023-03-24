@@ -6,6 +6,7 @@ import openai
 import os
 import requests
 import json
+import ssl
 from chatbotv3 import Chatbot
 
 os.environ['GPT_ENGINE'] = 'gpt-3.5-turbo'
@@ -133,7 +134,7 @@ def GetAccessToken():
     global access_token
     global expire_time
     url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=" + str(appid) + "&secret=" + str(appsecret)
-    res = requests.get(url)
+    res = requests.get(url, verify=False)
     access_token = json.loads(res.text).get('access_token')
     expire_time = time.time() + 7200
     print(access_token, expire_time)
