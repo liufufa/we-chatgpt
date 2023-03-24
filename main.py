@@ -94,22 +94,12 @@ def wechat():
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
                 else:
-                    sendMessageToBot('', userName, botName)
-                    answer = bot_list[userName].ask(msg)
-                    # a_list.get(userName).append(answer)
-                    # q_list.get(userName).append(msg)
-                    # resp = {
-                    #     'ToUserName':req.get('FromUserName'),
-                    #     'FromUserName':req.get('ToUserName'),
-                    #     'CreateTime':int(time.time()),
-                    #     'MsgType':'text',
-                    #     'Content': answer
-                    # }
-                    # 把构造的字典转换成xml格式
-                    # xml = xmltodict.unparse({'xml':resp})
-                    # return xml
-                    sendMessageToBot('['+msg+']\n'+answer, userName, botName)
-                    return ''
+                    pid = os.fork()
+                    if pid == 0:
+                        sendMessageToBot('['+msg+']\n'+bot_list[userName].ask(msg), userName, botName)
+                        return ''
+                    else:
+                        return 'success'
             except Exception as e:
                 resp = {
                     'ToUserName':req.get('FromUserName'),
