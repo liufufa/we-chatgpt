@@ -82,12 +82,6 @@ def wechat():
             # 获取用户的信息，开始构造返回数据
             try:
                 msg = req.get('Content')
-                # 新用户，新建list
-                if a_list.get(userName) == None:
-                    a_list.setdefault(userName, list())
-                    q_list.setdefault(userName, list())
-                    msg_id_list.setdefault(userName, list())
-                    bot_list.setdefault(userName, Chatbot(api_key=api_key))
                 if msg in ['。', '你好', 'hi']:
                     resp = {
                         'ToUserName':userName,
@@ -99,10 +93,14 @@ def wechat():
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
                 else:
-                    if msgId not in msg_id_list[userName]:
-                        print(f'append msgId={msgId}')
+                    if msgId not in msg_id_list.setdefault(userName, list()):
+                        answer = '[' + msg + ']\n' + bot_list.setdefault(userName, Chatbot(api_key=api_key)).ask(msg)
                         msg_id_list[userName].append(msgId)
-                        sendMessageToBot('['+msg+']\n'+bot_list[userName].ask(msg), userName, botName)
+                        q_list.setdefault(userName, list()).append(msg)
+                        a_list.setdefault(userName, list()).append(answer)
+                        print(msg_id_list)
+                        print(q_list)
+                        sendMessageToBot(answer, userName, botName)
                     return ''
             except Exception as e:
                 resp = {
