@@ -27,7 +27,10 @@ a_list: dict = {
 q_list: dict = {
     '': list()
 }
-
+# MsgID列表用于去重
+msg_id_list: dict = {
+    '': list()
+}
 
 app = Flask(__name__)
 
@@ -73,6 +76,7 @@ def wechat():
         print('req=' + str(req))
         userName = req.get('FromUserName')
         botName = req.get('ToUserName')
+        msgId = req.get('MsgId')
         # 判断post过来的数据中数据类型是不是文本
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
@@ -82,6 +86,7 @@ def wechat():
                 if a_list.get(userName) == None:
                     a_list.setdefault(userName, list())
                     q_list.setdefault(userName, list())
+                    msg_id_list.setdefault(userName, list())
                     bot_list.setdefault(userName, Chatbot(api_key=api_key))
                 if msg in ['。', '你好', 'hi']:
                     resp = {
@@ -94,12 +99,11 @@ def wechat():
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
                 else:
-                    pid = os.fork()
-                    if pid == 0:
+                    if msgId not in msg_id_list[userName]:
+                        print(f'append msgId={msgId}')
+                        msg_id_list[userName].append(msgId)
                         sendMessageToBot('['+msg+']\n'+bot_list[userName].ask(msg), userName, botName)
-                        return ''
-                    else:
-                        return 'success'
+                    return ''
             except Exception as e:
                 resp = {
                     'ToUserName':req.get('FromUserName'),
