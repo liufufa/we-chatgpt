@@ -94,6 +94,7 @@ def wechat():
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
                 else:
+                    sendMessageToBot('', userName, botName)
                     answer = bot_list[userName].ask(msg)
                     # a_list.get(userName).append(answer)
                     # q_list.get(userName).append(msg)
