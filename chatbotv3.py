@@ -32,7 +32,7 @@ class Chatbot:
         temperature: float = 0.5,
         top_p: float = 1.0,
         reply_count: int = 1,
-        system_prompt: str = "你是firefox，善于解决一切问题",
+        system_prompt: str = "",
     ) -> None:
         """
         Initialize Chatbot with API key (from https://platform.openai.com/account/api-keys)
