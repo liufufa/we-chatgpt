@@ -12,6 +12,9 @@ os.environ['GPT_ENGINE'] = 'gpt-3.5-turbo'
 appid = os.environ.get('app_id')
 appsecret = os.environ.get('app_secret')
 api_key = os.environ.get('API_KEY')
+access_token = ''
+expire_time = 0
+#每人一个gpt实例
 bot_list: dict = {
     '': Chatbot(api_key=api_key)
 }
@@ -68,6 +71,7 @@ def wechat():
 
         print('req=' + str(req))
         userName = req.get('FromUserName')
+        botName = req.get('ToUserName')
         # 判断post过来的数据中数据类型是不是文本
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
@@ -80,8 +84,8 @@ def wechat():
                     bot_list.setdefault(userName, Chatbot(api_key=api_key))
                 if msg in ['。', '你好', 'hi']:
                     resp = {
-                        'ToUserName':req.get('FromUserName'),
-                        'FromUserName':req.get('ToUserName'),
+                        'ToUserName':userName,
+                        'FromUserName':botName,
                         'CreateTime':int(time.time()),
                         'MsgType':'text',
                         'Content': '我醒了请提问~'
@@ -90,19 +94,19 @@ def wechat():
                     return xml
                 else:
                     answer = bot_list[userName].ask(msg)
-                    a_list.get(userName).append(answer)
-                    q_list.get(userName).append(msg)
-                    resp = {
-                        'ToUserName':req.get('FromUserName'),
-                        'FromUserName':req.get('ToUserName'),
-                        'CreateTime':int(time.time()),
-                        'MsgType':'text',
-                        'Content': answer
-                    }
+                    # a_list.get(userName).append(answer)
+                    # q_list.get(userName).append(msg)
+                    # resp = {
+                    #     'ToUserName':req.get('FromUserName'),
+                    #     'FromUserName':req.get('ToUserName'),
+                    #     'CreateTime':int(time.time()),
+                    #     'MsgType':'text',
+                    #     'Content': answer
+                    # }
                     # 把构造的字典转换成xml格式
                     # xml = xmltodict.unparse({'xml':resp})
                     # return xml
-                    sendMessage('['+msg+']\n'+answer, userName)
+                    sendMessageToBot('['+msg+']\n'+answer, userName, botName)
                     return ''
             except Exception as e:
                 resp = {
@@ -126,16 +130,21 @@ def wechat():
             return xml
 
 def GetAccessToken():
-    url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=" + appid + "&secret=" + appsecret
+    global access_token
+    global expire_time
+    url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=" + str(appid) + "&secret=" + str(appsecret)
     res = requests.get(url)
     access_token = json.loads(res.text).get('access_token')
-    print(access_token)
-    return access_token
+    expire_time = time.time() + 7200
+    print(access_token, expire_time)
 
-def sendMessage(msg: str, toUserName: str):
-    access_token = GetAccessToken()
+def sendMessageToBot(msg: str, toUserName: str, botName: str):
+    global access_token
+    global expire_time
+    if len(access_token) == 0 or time.time() > expire_time:
+        GetAccessToken()
     body = {
-            'touser':findOpenid(toUserName),
+            'touser':findOpenid(botName, toUserName),
             'msgtype':'text',
             'text':{
                 'content':msg
@@ -146,7 +155,9 @@ def sendMessage(msg: str, toUserName: str):
         data=bytes(json.dumps(body, ensure_ascii=False).encode('utf-8'))
     )
 
-def findOpenid(fromName: str):
+def findOpenid(botName: str, fromName: str):
+    if botName == 'gh_ae8f15469043':
+        return fromName
     dict = {
         # zjc
         'oVkbM52ybms9ag_jyOop64TpT5OM':'odWUz6YvwpkPcTU3NinUd5Cy1jsM',
