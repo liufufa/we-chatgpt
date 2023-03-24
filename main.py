@@ -4,9 +4,13 @@ import time
 import xmltodict
 import openai
 import os
+import requests
+import json
 from chatbotv3 import Chatbot
 
 os.environ['GPT_ENGINE'] = 'gpt-3.5-turbo'
+appid = os.environ.get('app_id')
+appsecret = os.environ.get('app_secret')
 api_key = os.environ.get('API_KEY')
 bot_list: dict = {
     '': Chatbot(api_key=api_key)
@@ -75,22 +79,13 @@ def wechat():
                     q_list.setdefault(userName, list())
                     bot_list.setdefault(userName, Chatbot(api_key=api_key))
                 if msg in ['。', '你好', 'hi']:
-                    if len(a_list.get(userName)) == 0:
-                        resp = {
-                            'ToUserName':req.get('FromUserName'),
-                            'FromUserName':req.get('ToUserName'),
-                            'CreateTime':int(time.time()),
-                            'MsgType':'text',
-                            'Content': '请提问，或回复中文句号查询上一次结果...'
-                        }
-                    else:
-                        resp = {
-                            'ToUserName':req.get('FromUserName'),
-                            'FromUserName':req.get('ToUserName'),
-                            'CreateTime':int(time.time()),
-                            'MsgType':'text',
-                            'Content': '['+str(q_list.get(userName).pop())+']\n'+str(a_list.get(userName).pop())
-                        }
+                    resp = {
+                        'ToUserName':req.get('FromUserName'),
+                        'FromUserName':req.get('ToUserName'),
+                        'CreateTime':int(time.time()),
+                        'MsgType':'text',
+                        'Content': '我醒了请提问~'
+                    }
                     xml = xmltodict.unparse({'xml':resp})
                     return xml
                 else:
@@ -105,15 +100,17 @@ def wechat():
                         'Content': answer
                     }
                     # 把构造的字典转换成xml格式
-                    xml = xmltodict.unparse({'xml':resp})
-                    return xml
+                    # xml = xmltodict.unparse({'xml':resp})
+                    # return xml
+                    sendMessage('['+msg+']\n'+answer, userName)
+                    return ''
             except Exception as e:
                 resp = {
                     'ToUserName':req.get('FromUserName'),
                     'FromUserName':req.get('ToUserName'),
                     'CreateTime':int(time.time()),
                     'MsgType':'text',
-                    'Content':'好像发生了点问题，请稍后再重新提问:'+str(e)
+                    'Content':'好像发生了点问题\n'+str(e)
                 }
                 xml = xmltodict.unparse({'xml':resp})
                 return xml
@@ -128,6 +125,39 @@ def wechat():
             xml = xmltodict.unparse({'xml':resp})
             return xml
 
+def GetAccessToken():
+    url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=" + appid + "&secret=" + appsecret
+    res = requests.get(url)
+    access_token = json.loads(res.text).get('access_token')
+    print(access_token)
+    return access_token
+
+def sendMessage(msg: str, toUserName: str):
+    access_token = GetAccessToken()
+    body = {
+            'touser':findOpenid(toUserName),
+            'msgtype':'text',
+            'text':{
+                'content':msg
+            }
+        }
+    resp = requests.post(
+        url='https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=' + access_token,
+        data=bytes(json.dumps(body, ensure_ascii=False).encode('utf-8'))
+    )
+
+def findOpenid(fromName: str):
+    dict = {
+        # zjc
+        'oVkbM52ybms9ag_jyOop64TpT5OM':'odWUz6YvwpkPcTU3NinUd5Cy1jsM',
+        # lff
+        'oVkbM54D4yjOGMaYSPIh12kcMn1Q':'odWUz6aFvfhRQ3cSsCo1sxPp7pus'
+    }
+    if dict[fromName]:
+        return dict[fromName]
+    return ''
+
+    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=True)
