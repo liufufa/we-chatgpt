@@ -150,9 +150,10 @@ def sendMessageToBot(msg: str, toUserName: str, botName: str):
                 'content':msg
             }
         }
-    resp = requests.post(
+    requests.post(
         url='https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=' + access_token,
-        data=bytes(json.dumps(body, ensure_ascii=False).encode('utf-8'))
+        data=bytes(json.dumps(body, ensure_ascii=False).encode('utf-8')),
+        verify=False
     )
 
 def findOpenid(botName: str, fromName: str):
