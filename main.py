@@ -10,16 +10,17 @@ import ssl
 from chatbotv3 import Chatbot
 
 os.environ['GPT_ENGINE'] = 'gpt-3.5-turbo'
-appid = os.environ.get('app_id')
-appsecret = os.environ.get('app_secret')
+app_id = os.environ.get('app_id')
+app_secret = os.environ.get('app_secret')
 api_key = os.environ.get('API_KEY')
+
 access_token = ''
 expire_time = 0
-#每人一个gpt实例
+# 每人一个gpt实例
 bot_list: dict = {}
-#回答列表
+# 回答列表
 a_list: dict = {}
-#问题列表
+# 问题列表
 q_list: dict = {}
 
 app = Flask(__name__)
@@ -64,46 +65,53 @@ def wechat():
             return 'no element', 200
 
         print('req=' + str(req))
-        userName = req.get('FromUserName')
-        botName = req.get('ToUserName')
+        user_name = req.get('FromUserName', '')
+        my_name = req.get('ToUserName', '')
+        msg_time = req.get('CreateTime', '')
         # 判断post过来的数据中数据类型是不是文本
         if 'text' == req.get('MsgType'):
             # 获取用户的信息，开始构造返回数据
             try:
                 msg = req.get('Content')
                 if msg in ['。', '你好', 'hi']:
-                    resp = {
-                        'ToUserName':userName,
-                        'FromUserName':botName,
-                        'CreateTime':int(time.time()),
-                        'MsgType':'text',
-                        'Content': '我醒了请提问~'
-                    }
-                    xml = xmltodict.unparse({'xml':resp})
-                    return xml
+                    if int(time.time()) - int(msg_time) < 5:
+                        resp = {
+                                'ToUserName':user_name,
+                                'FromUserName':my_name,
+                                'CreateTime':int(time.time()),
+                                'MsgType':'text',
+                                'Content': '我醒了请提问ʕ￫ᴥ￩ʔ'
+                            }
+                        xml = xmltodict.unparse({'xml':resp})
+                        return xml
+                    else:
+                        send_message_to_bot('我醒了请提问ʕ￫ᴥ￩ʔ', user_name, my_name)
+                    return ''
                 else:
                     pid = os.fork()
                     if pid == 0:
+                        # fork一个进程立即返回内容占位，防止微信5s重试。低并发可以这样搞
                         resp = {
-                            'ToUserName':userName,
-                            'FromUserName':botName,
+                            'ToUserName':user_name,
+                            'FromUserName':my_name,
                             'CreateTime':int(time.time()),
                             'MsgType':'text',
-                            'Content': '稍等我问下'
+                            'Content': '稍等我去问下，越复杂越久嗷ʕ·ᴥ·ʔ'
                         }
                         xml = xmltodict.unparse({'xml':resp})
                         return xml
                     else:
-                        answer = '[' + msg + ']\n' + bot_list.setdefault(userName, Chatbot(api_key=api_key)).ask(msg)
-                        q_list.setdefault(userName, list()).append(msg)
-                        a_list.setdefault(userName, list()).append(answer)
+                        # 父进程请求chatgpt
+                        answer = '[' + msg + ']\n' + bot_list.setdefault(user_name, Chatbot(api_key=api_key)).ask(msg)
+                        q_list.setdefault(user_name, list()).append(msg)
+                        a_list.setdefault(user_name, list()).append(answer)
                         print(q_list)
-                        sendMessageToBot(answer, userName, botName)
+                        send_message_to_bot(answer, user_name, my_name)
                     return ''
             except Exception as e:
                 resp = {
-                    'ToUserName':req.get('FromUserName'),
-                    'FromUserName':req.get('ToUserName'),
+                    'ToUserName':user_name,
+                    'FromUserName':my_name,
                     'CreateTime':int(time.time()),
                     'MsgType':'text',
                     'Content':'好像发生了点问题\n'+str(e)
@@ -112,8 +120,8 @@ def wechat():
                 return xml
         else:
             resp = {
-                'ToUserName': req.get('FromUserName', ''),
-                'FromUserName': req.get('ToUserName', ''),
+                'ToUserName':user_name,
+                'FromUserName':my_name,
                 'CreateTime': int(time.time()),
                 'MsgType': 'text',
                 'Content': '目前仅支持文本消息～'
@@ -121,22 +129,22 @@ def wechat():
             xml = xmltodict.unparse({'xml':resp})
             return xml
 
-def GetAccessToken():
+def get_access_token():
     global access_token
     global expire_time
-    url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=" + str(appid) + "&secret=" + str(appsecret)
+    url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=" + str(app_id) + "&secret=" + str(app_secret)
     res = requests.get(url, verify=False)
     access_token = json.loads(res.text).get('access_token')
     expire_time = time.time() + 7200
     print(access_token, expire_time)
 
-def sendMessageToBot(msg: str, toUserName: str, botName: str):
+def send_message_to_bot(msg: str, to_user_name: str, bot_name: str):
     global access_token
     global expire_time
     if len(access_token) == 0 or time.time() > expire_time:
-        GetAccessToken()
+        get_access_token()
     body = {
-            'touser':findOpenid(botName, toUserName),
+            'touser':find_openid(bot_name, to_user_name),
             'msgtype':'text',
             'text':{
                 'content':msg
@@ -148,18 +156,17 @@ def sendMessageToBot(msg: str, toUserName: str, botName: str):
         verify=False
     )
 
-def findOpenid(botName: str, fromName: str):
-    if botName == 'gh_ae8f15469043':
-        return fromName
-    dict = {
-        # zjc
-        'oVkbM52ybms9ag_jyOop64TpT5OM':'odWUz6YvwpkPcTU3NinUd5Cy1jsM',
-        # lff
-        'oVkbM54D4yjOGMaYSPIh12kcMn1Q':'odWUz6aFvfhRQ3cSsCo1sxPp7pus'
-    }
-    if dict[fromName]:
-        return dict[fromName]
-    return ''
+firefox_bot_dict = {
+    # zjc
+    'oVkbM52ybms9ag_jyOop64TpT5OM':'odWUz6YvwpkPcTU3NinUd5Cy1jsM',
+    # lff
+    'oVkbM54D4yjOGMaYSPIh12kcMn1Q':'odWUz6aFvfhRQ3cSsCo1sxPp7pus'
+}
+
+def find_openid(bot_name: str, from_name: str):
+    if bot_name == 'gh_ae8f15469043':
+        return from_name
+    return firefox_bot_dict.get(from_name, '')
 
     
 if __name__ == '__main__':
